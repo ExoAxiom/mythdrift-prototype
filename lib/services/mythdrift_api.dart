@@ -7,7 +7,7 @@ class MythdriftApi {
   //   Physical device on LAN  → your machine's LAN IP, e.g. 192.168.x.x
   //   Android emulator        → 10.0.2.2
   //   iOS simulator / desktop → localhost
-  static const String _baseUrl = "http://localhost:5000";
+  static const String _baseUrl = "https://mythdrift-prototype.onrender.com";
   static const String _narratorsCacheKey = 'mythdrift_narrators_cache';
 
   static Future<Map<String, dynamic>> createSession(String narrator) async {
