@@ -278,6 +278,11 @@ def generate_next_beat(
         next_beat_id, rng_triggered = resolve_choice(node, player_choice)
         next_node = graph.get(next_beat_id, graph.get("intro", {}))
 
+    if adventure.get("meta", {}).get("use_authored_text"):
+        beat_text = next_node.get("text", "")
+        display_choices = list(next_node.get("choices", {}).keys())
+        return beat_text, display_choices, next_beat_id, mood, drift_signature, rng_triggered
+
     narrator_memory = extract_narrator_memory(history, session_count, landmarks)
     history_summary = summarize_history(history)
 

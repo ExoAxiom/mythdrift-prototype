@@ -6,6 +6,7 @@ ADVENTURE_META = {
     "estimated_minutes": 15,
     "type": "guided",
     "tags": ["mystery", "medium", "solo", "dark"],
+    "use_authored_text": True,
 }
 
 LANDMARK_BEATS = {
