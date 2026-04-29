@@ -14,6 +14,14 @@ NARRATOR_PROFILES: Dict[str, dict] = {
             "trust": ["wait", "listen", "observe", "stay", "speak softly"],
             "suspicion": ["demand", "defy", "ignore", "resist", "refuse"],
             "curiosity": ["ask", "explore", "reach", "touch", "examine"]
+        },
+        "flavor_lines": {
+            "dread":     "Something here already knows how this ends.",
+            "wonder":    "There are places that remember being looked at.",
+            "defiance":  "The world has noted your resistance. It is patient.",
+            "discovery": "Most people walk past this. You stopped.",
+            "loss":      "What remains is always the part that mattered.",
+            "threshold": "The door only looks like a door from this side.",
         }
     },
 
@@ -30,6 +38,14 @@ NARRATOR_PROFILES: Dict[str, dict] = {
             "trust": ["comply", "accept", "follow", "stand firm", "obey"],
             "suspicion": ["hesitate", "waver", "retreat", "pull back", "turn away"],
             "curiosity": ["assess", "evaluate", "approach", "investigate", "scan"]
+        },
+        "flavor_lines": {
+            "dread":     "Identify the threat. Address it.",
+            "wonder":    "Note it. Move on. Wonder later.",
+            "defiance":  "Good. That instinct will serve you.",
+            "discovery": "File it. What's next.",
+            "loss":      "Absorb it. Keep moving.",
+            "threshold": "Decision point. Choose.",
         }
     },
 
@@ -46,6 +62,14 @@ NARRATOR_PROFILES: Dict[str, dict] = {
             "trust": ["play along", "laugh", "embrace", "let go", "accept it"],
             "suspicion": ["resist", "argue", "call out", "reject", "mock back"],
             "curiosity": ["reach", "poke", "try", "experiment", "break it"]
+        },
+        "flavor_lines": {
+            "dread":     "Oh, that face. That's the face people make right before it gets interesting.",
+            "wonder":    "See? And you almost didn't come.",
+            "defiance":  "There it is. That's the version of you I was waiting for.",
+            "discovery": "You found the thing. Don't celebrate yet. You still have to do something about it.",
+            "loss":      "Well. That happened.",
+            "threshold": "Go on then. I'll be right here, judging.",
         }
     },
 
@@ -62,6 +86,14 @@ NARRATOR_PROFILES: Dict[str, dict] = {
             "trust": ["accept", "believe", "follow the sign", "heed", "listen"],
             "suspicion": ["doubt", "question", "challenge", "demand proof", "deny"],
             "curiosity": ["seek", "unravel", "decipher", "ask", "interpret"]
+        },
+        "flavor_lines": {
+            "dread":     "This moment was always going to happen.",
+            "wonder":    "The shape of what comes next is already in the room.",
+            "defiance":  "Resistance is one of the paths. It leads somewhere.",
+            "discovery": "You have found what you were always going to find.",
+            "loss":      "Loss is a form of arrival.",
+            "threshold": "What is on the other side has been waiting your entire life.",
         }
     },
 
@@ -78,13 +110,20 @@ NARRATOR_PROFILES: Dict[str, dict] = {
             "trust": ["remember", "honor", "stay", "preserve", "cherish"],
             "suspicion": ["abandon", "forget", "destroy", "ignore", "discard"],
             "curiosity": ["search", "find", "uncover", "return", "recall"]
+        },
+        "flavor_lines": {
+            "dread":     "I know this feeling. I lived in it for years.",
+            "wonder":    "I used to feel that. Before.",
+            "defiance":  "Careful. That worked once. Then it didn't.",
+            "discovery": "And now you know. That's the part no one warns you about.",
+            "loss":      "Yes. That's what it costs. Every time.",
+            "threshold": "I stood where you're standing. I chose wrong. You might do better.",
         }
     }
 }
 
 
 def compute_mood_shift(history: list) -> Dict[str, float]:
-    """Analyzes player choices to produce a mood state dict (0.0–1.0 per axis)."""
     trust = 0.0
     suspicion = 0.0
     curiosity = 0.0
@@ -99,7 +138,8 @@ def compute_mood_shift(history: list) -> Dict[str, float]:
         suspicion_words = ["demand", "defy", "resist", "refuse", "ignore", "retreat",
                            "doubt", "question", "deny", "abandon", "reject"]
         curiosity_words = ["explore", "reach", "touch", "ask", "seek", "examine",
-                           "investigate", "unravel", "search", "find", "try"]
+                           "investigate", "unravel", "search", "find", "try",
+                           "read", "check", "look", "open", "go to"]
 
         for word in trust_words:
             if word in choice:
@@ -120,7 +160,6 @@ def compute_mood_shift(history: list) -> Dict[str, float]:
 
 
 def describe_mood(mood: Dict[str, float]) -> str:
-    """Converts mood floats into a natural-language phrase for the LLM prompt."""
     parts = []
     if mood["trust"] > 0.4:
         parts.append("growing trust toward the player")

@@ -11,13 +11,15 @@ def _path(session_id: str) -> Path:
     return _SESSIONS_DIR / f"{session_id}.json"
 
 
-def create_session(narrator: str) -> dict:
+def create_session(narrator: str, adventure_id: str = "last_voicemail", adventure_type: str = "guided") -> dict:
     _SESSIONS_DIR.mkdir(exist_ok=True)
     session_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     data = {
         "session_id": session_id,
         "narrator": narrator,
+        "adventure_id": adventure_id,
+        "adventure_type": adventure_type,
         "history": [],
         "current_beat_id": "intro",
         "session_count": 1,
