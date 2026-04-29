@@ -268,8 +268,15 @@ def generate_next_beat(
     landmarks = adventure["landmarks"]
 
     node = graph.get(current_beat_id, graph.get("intro", {}))
-    next_beat_id, rng_triggered = resolve_choice(node, player_choice)
-    next_node = graph.get(next_beat_id, graph.get("intro", {}))
+
+    # "start" means: read the current node itself, don't advance
+    if player_choice == "start":
+        next_beat_id = current_beat_id
+        next_node = node
+        rng_triggered = False
+    else:
+        next_beat_id, rng_triggered = resolve_choice(node, player_choice)
+        next_node = graph.get(next_beat_id, graph.get("intro", {}))
 
     narrator_memory = extract_narrator_memory(history, session_count, landmarks)
     history_summary = summarize_history(history)
