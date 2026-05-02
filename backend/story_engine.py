@@ -2,11 +2,14 @@ import os
 from typing import List, Dict, Tuple, Optional
 
 from narrators import NARRATOR_PROFILES, compute_mood_shift, describe_mood
-from world_state import compute_world_state, compute_drift_signature
+from world_state import compute_world_state, compute_drift_signature, get_conditional_choices
 from adventure_registry import get_adventure, get_premise, resolve_choice
 
 _api_key: Optional[str] = os.environ.get("ANTHROPIC_API_KEY")
 _client = None
+
+_gemini_api_key: Optional[str] = os.environ.get("GEMINI_API_KEY")
+_gemini_client = None
 
 
 def _get_client():
@@ -15,6 +18,15 @@ def _get_client():
         import anthropic
         _client = anthropic.Anthropic(api_key=_api_key)
     return _client
+
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is None and _gemini_api_key:
+        import google.generativeai as genai
+        genai.configure(api_key=_gemini_api_key)
+        _gemini_client = genai
+    return _gemini_client
 
 
 # ---------------------------------------------------------------------------
@@ -29,7 +41,13 @@ def summarize_history(history: list) -> str:
     return "Player recently " + ", then ".join(parts) + "."
 
 
-def extract_narrator_memory(history: list, session_count: int, landmarks: dict) -> str:
+def extract_narrator_memory(
+    history: list,
+    session_count: int,
+    landmarks: dict,
+    mood: dict = None,
+    drift_signature: str = None,
+) -> str:
     if not history and session_count <= 1:
         return ""
     visited = {h.get("beat_id") for h in history}
@@ -41,6 +59,17 @@ def extract_narrator_memory(history: list, session_count: int, landmarks: dict) 
         parts.append(f"This is the player's {n}{suffix} run.")
     if found:
         parts.append("They previously: " + ", ".join(found) + ".")
+    if mood:
+        dominant = max(mood, key=mood.get)
+        if mood[dominant] > 0.5:
+            arc_labels = {
+                "trust":      "growing trust",
+                "suspicion":  "rising suspicion",
+                "curiosity":  "keen curiosity",
+            }
+            parts.append(f"The player has shown {arc_labels[dominant]} throughout.")
+    if drift_signature and drift_signature != "The Drifter":
+        parts.append(f"They carry the mark of {drift_signature}.")
     if parts:
         parts.append("The narrator remembers.")
     return " ".join(parts)
@@ -151,10 +180,10 @@ def generate_open_beat(
     Returns (beat_text, choices_list, rng_triggered=False).
     Requires ANTHROPIC_API_KEY.
     """
-    client = _get_client()
-    if client is None:
+    gemini = _get_gemini_client()
+    if gemini is None:
         return (
-            "The narrator is unavailable for open drifts without an API key. "
+            "The narrator is unavailable for open drifts without a Gemini API key. "
             "Choose a guided tale from the menu.",
             ["return to adventures"],
             False,
@@ -188,14 +217,19 @@ def generate_open_beat(
         "Write the next beat and choices."
     )
 
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=500,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    )
-
-    raw = msg.content[0].text.strip()
+    try:
+        model = gemini.GenerativeModel(
+            model_name="gemini-2.0-flash",
+            system_instruction=system,
+        )
+        response = model.generate_content(user)
+        raw = response.text.strip()
+    except Exception as e:
+        return (
+            f"[Gemini error — {type(e).__name__}: {e}]",
+            ["try again", "return to adventures"],
+            False,
+        )
 
     # Parse beat and choices
     if "CHOICES:" in raw:
@@ -281,9 +315,12 @@ def generate_next_beat(
     if adventure.get("meta", {}).get("use_authored_text"):
         beat_text = next_node.get("text", "")
         display_choices = list(next_node.get("choices", {}).keys())
+        for choice_text, _ in get_conditional_choices(next_node, world_state, mood):
+            if choice_text not in display_choices:
+                display_choices.append(choice_text)
         return beat_text, display_choices, next_beat_id, mood, drift_signature, rng_triggered
 
-    narrator_memory = extract_narrator_memory(history, session_count, landmarks)
+    narrator_memory = extract_narrator_memory(history, session_count, landmarks, mood=mood, drift_signature=drift_signature)
     history_summary = summarize_history(history)
 
     beat_text = generate_beat_with_llm(
@@ -303,5 +340,8 @@ def generate_next_beat(
     # Build display choices for next node
     raw_choices = next_node.get("choices", {})
     display_choices = list(raw_choices.keys())
+    for choice_text, _ in get_conditional_choices(next_node, world_state, mood):
+        if choice_text not in display_choices:
+            display_choices.append(choice_text)
 
     return beat_text, display_choices, next_beat_id, mood, drift_signature, rng_triggered
