@@ -23,9 +23,8 @@ def _get_client():
 def _get_gemini_client():
     global _gemini_client
     if _gemini_client is None and _gemini_api_key:
-        import google.generativeai as genai
-        genai.configure(api_key=_gemini_api_key)
-        _gemini_client = genai
+        from google import genai
+        _gemini_client = genai.Client(api_key=_gemini_api_key)
     return _gemini_client
 
 
@@ -218,11 +217,15 @@ def generate_open_beat(
             "Write the next beat and choices."
         )
 
-        model = gemini.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=system,
+        from google.genai import types
+        response = gemini.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=user,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                max_output_tokens=500,
+            ),
         )
-        response = model.generate_content(user)
         raw = response.text.strip()
     except Exception as e:
         return (
