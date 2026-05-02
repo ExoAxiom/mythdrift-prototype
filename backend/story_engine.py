@@ -180,44 +180,44 @@ def generate_open_beat(
     Returns (beat_text, choices_list, rng_triggered=False).
     Requires ANTHROPIC_API_KEY.
     """
-    gemini = _get_gemini_client()
-    if gemini is None:
-        return (
-            "The narrator is unavailable for open drifts without a Gemini API key. "
-            "Choose a guided tale from the menu.",
-            ["return to adventures"],
-            False,
+    try:
+        gemini = _get_gemini_client()
+        if gemini is None:
+            return (
+                "The narrator is unavailable for open drifts without a Gemini API key. "
+                "Choose a guided tale from the menu.",
+                ["return to adventures"],
+                False,
+            )
+
+        beat_count = len(history)
+        arc_phase, arc_guidance = _get_arc_phase(beat_count)
+        mood_desc = describe_mood(mood)
+        history_summary = summarize_history(history)
+
+        system = (
+            f"You are {narrator_profile['name']}, acting as a narrator and game master "
+            f"for an interactive story session.\n"
+            f"Setting: {premise['title']} — {premise['description']}\n"
+            f"Arc guidance: {premise['arc_hint']}\n"
+            f"Current phase: {arc_phase}. {arc_guidance}\n"
+            f"Narrator tone: {narrator_profile['tone']}\n"
+            f"Narrator behavior: {narrator_profile['behavior']}\n"
+            f"Emotional state toward player: {mood_desc}\n"
+            f"Drift Signature: {drift_signature}\n\n"
+            "Write a narrative beat (3–5 sentences, present tense) that advances the story. "
+            "Then provide EXACTLY 3 choices the player can make, formatted as:\n"
+            "CHOICES:\n- choice one\n- choice two\n- choice three\n\n"
+            "Choices should be specific, meaningful, and reflect real options in this situation. "
+            "Do not number them. Do not add explanations."
         )
 
-    beat_count = len(history)
-    arc_phase, arc_guidance = _get_arc_phase(beat_count)
-    mood_desc = describe_mood(mood)
-    history_summary = summarize_history(history)
+        user = (
+            f"Player's last action: \"{player_choice}\"\n"
+            f"Story so far: {history_summary}\n\n"
+            "Write the next beat and choices."
+        )
 
-    system = (
-        f"You are {narrator_profile['name']}, acting as a narrator and game master "
-        f"for an interactive story session.\n"
-        f"Setting: {premise['title']} — {premise['description']}\n"
-        f"Arc guidance: {premise['arc_hint']}\n"
-        f"Current phase: {arc_phase}. {arc_guidance}\n"
-        f"Narrator tone: {narrator_profile['tone']}\n"
-        f"Narrator behavior: {narrator_profile['behavior']}\n"
-        f"Emotional state toward player: {mood_desc}\n"
-        f"Drift Signature: {drift_signature}\n\n"
-        "Write a narrative beat (3–5 sentences, present tense) that advances the story. "
-        "Then provide EXACTLY 3 choices the player can make, formatted as:\n"
-        "CHOICES:\n- choice one\n- choice two\n- choice three\n\n"
-        "Choices should be specific, meaningful, and reflect real options in this situation. "
-        "Do not number them. Do not add explanations."
-    )
-
-    user = (
-        f"Player's last action: \"{player_choice}\"\n"
-        f"Story so far: {history_summary}\n\n"
-        "Write the next beat and choices."
-    )
-
-    try:
         model = gemini.GenerativeModel(
             model_name="gemini-2.0-flash",
             system_instruction=system,
